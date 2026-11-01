@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Find Matching PG Accommodations in Bengaluru{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Find & Compare PG Accommodations</h1>
+        <p class="page-subtitle">
+            Filter listings by your budget, locality, room type, and facilities.
+            Each option is evaluated against estimated market rent and transparent safety indicators.
+        </p>
+    </div>
+
+    <div class="layout-2col">
+        <!-- Filter Controls Sidebar -->
+        <aside>
+            <div class="card">
+                <h3 class="card-title">Filter Preferences</h3>
+                <form id="finderForm">
+                    <!-- Budget Slider -->
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label class="form-label" style="margin: 0;">Maximum Budget</label>
+                            <span id="budgetDisplay" style="font-weight: 700; color: var(--primary);">₹15,000</span>
+                        </div>
+                        <input type="range" id="budgetSlider" min="5000" max="35000" step="500" value="15000" style="width: 100%; accent-color: var(--primary);">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-subtle); margin-top: 2px;">
+                            <span>₹5,000</span>
+                            <span>₹35,000</span>
+                        </div>
+                    </div>
+
+                    <!-- Locality -->
+                    <div class="form-group">
+                        <label class="form-label" for="localitySelect">Locality</label>
+                        <select id="localitySelect" class="form-select">
+                            <option value="Any">Any Locality (All Bengaluru)</option>
+                            {% for loc in all_localities %}
+                            <option value="{{ loc }}">{{ loc }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Room Sharing Type -->
+                    <div class="form-group">
+                        <label class="form-label" for="roomTypeSelect">Room Sharing Type</label>
+                        <select id="roomTypeSelect" class="form-select">
+                            <option value="Any">Any Room Type</option>
+                            {% for rt in all_room_types %}
+                            <option value="{{ rt }}">{{ rt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Food Option -->
+                    <div class="form-group">
+                        <label class="form-label" for="foodOptionSelect">Food Facility</label>
+                        <select id="foodOptionSelect" class="form-select">
+                            <option value="Any">Any Food Policy</option>
+                            {% for fo in all_food_options %}
+                            <option value="{{ fo }}">{{ fo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Strict Requirements -->
+                    <div class="form-group">
+                        <label class="form-label">Mandatory Facilities</label>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="wifiReq">
+                                <span>Wi-Fi Required</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="acReq">
+                                <span>Air Conditioning (AC) Required</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Preferred Amenities -->
+                    <div class="form-group">
+                        <label class="form-label">Preferred Amenities</label>
+                        <div class="form-checkbox-group">
+                            {% for amenity in known_amenities %}
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="preferred_amenities" value="{{ amenity }}">
+                                <span>{{ amenity }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Submit & Reset Buttons -->
+                    <div style="display: flex; gap: 10px; margin-top: 24px;">
+                        <button type="submit" class="btn btn-primary btn-block">Apply Filters</button>
+                    </div>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Listings Results Container -->
+        <section>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="resultsCounter" style="font-family: var(--font-heading); font-size: 1.25rem;">
+                    {{ initial_results.total_matches }} Matching PG(s) Found
+                </h3>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">
+                    Sorted by composite match score & safety
+                </span>
+            </div>
+
+            <div id="finderResults">
+                {% for r in initial_results.recommendations %}
+                <div class="listing-card">
+                    <div class="listing-header">
+                        <div>
+                            <div class="listing-locality">{{ r.locality }}</div>
+                            <div class="listing-type">{{ r.room_type }} • Food: {{ r.food_option }} • Bath: {{ r.bathroom_type }}</div>
+                        </div>
+                        <div class="listing-price-box">
+                            <div class="listing-rent">₹{{ "{:,.0f}".format(r.monthly_rent_inr) }} <span class="listing-rent-period">/ mo</span></div>
+                            <div class="listing-deposit">Deposit: ₹{{ "{:,.0f}".format(r.deposit_inr) }} ({{ r.deposit_to_rent_ratio }}x)</div>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 0.9rem; color: #475569; margin: 10px 0;">
+                        "{{ r.listing_description_demo or 'Standard PG accommodation in prime locality.' }}"
+                    </p>
+
+                    <div class="listing-amenities-row">
+                        <span class="amenity-chip" style="background: #eef2ff; color: #4338ca; font-weight: 600;">Wi-Fi: {{ r.wifi }}</span>
+                        <span class="amenity-chip" style="background: #eef2ff; color: #4338ca; font-weight: 600;">AC: {{ r.ac }}</span>
+                        {% for am in r.amenities.split(';') %}
+                            {% if am.strip() %}
+                            <span class="amenity-chip">{{ am.strip() }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    {% if r.safety.warnings %}
+                    <div class="warning-box">
+                        <strong style="font-size: 0.82rem; text-transform: uppercase; color: #92400e; display: block; margin-bottom: 6px;">
+                            Verification Indicators ({{ r.safety.warnings|length }}):
+                        </strong>
+                        {% for w in r.safety.warnings %}
+                        <div class="warning-item">
+                            <span>⚠️</span>
+                            <div><strong>{{ w.title }}:</strong> {{ w.message }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="listing-footer">
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <span class="badge badge-score">Match: {{ r.match_score }}/100</span>
+                            <span class="badge {{ r.safety.badge_class }}">{{ r.safety.rule_based_warning_label }}</span>
+                            <span style="font-size: 0.82rem; color: var(--text-muted);">★ {{ r.rating_demo }} ({{ r.review_count_demo }} reviews)</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.82rem; color: var(--primary); font-weight: 600;">{{ r.price_tag }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

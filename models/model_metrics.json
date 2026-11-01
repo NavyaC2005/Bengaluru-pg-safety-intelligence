@@ -1,0 +1,117 @@
+{
+  "dataset_info": {
+    "total_samples": 400,
+    "train_samples": 320,
+    "test_samples": 80,
+    "test_ratio": 0.2,
+    "random_seed": 42
+  },
+  "linear_regression": {
+    "train": {
+      "mae": 2083.75,
+      "rmse": 2626.81,
+      "r2": 0.7746
+    },
+    "test": {
+      "mae": 2335.28,
+      "rmse": 3076.31,
+      "r2": 0.6829
+    }
+  },
+  "random_forest": {
+    "train": {
+      "mae": 980.48,
+      "rmse": 1241.24,
+      "r2": 0.9497
+    },
+    "test": {
+      "mae": 2440.8,
+      "rmse": 3389.13,
+      "r2": 0.6152
+    }
+  },
+  "errors_by_locality": {
+    "BTM Layout": {
+      "count": 2,
+      "mean": 2025.43
+    },
+    "Banashankari": {
+      "count": 7,
+      "mean": 3204.13
+    },
+    "Bellandur": {
+      "count": 4,
+      "mean": 1272.24
+    },
+    "Bommanahalli": {
+      "count": 4,
+      "mean": 1453.29
+    },
+    "CV Raman Nagar": {
+      "count": 9,
+      "mean": 1646.26
+    },
+    "Electronic City": {
+      "count": 3,
+      "mean": 3183.93
+    },
+    "HSR Layout": {
+      "count": 5,
+      "mean": 3991.87
+    },
+    "Hebbal": {
+      "count": 5,
+      "mean": 2625.19
+    },
+    "Indiranagar": {
+      "count": 5,
+      "mean": 2977.62
+    },
+    "Jayanagar": {
+      "count": 6,
+      "mean": 2367.3
+    },
+    "Koramangala": {
+      "count": 2,
+      "mean": 9216.44
+    },
+    "Mahadevapura": {
+      "count": 4,
+      "mean": 870.92
+    },
+    "Marathahalli": {
+      "count": 4,
+      "mean": 860.37
+    },
+    "Rajajinagar": {
+      "count": 3,
+      "mean": 2015.23
+    },
+    "Whitefield": {
+      "count": 10,
+      "mean": 3448.54
+    },
+    "Yelahanka": {
+      "count": 7,
+      "mean": 778.28
+    }
+  },
+  "errors_by_room_type": {
+    "Double Sharing": {
+      "count": 38,
+      "mean": 2247.13
+    },
+    "Four Sharing": {
+      "count": 8,
+      "mean": 1329.95
+    },
+    "Single": {
+      "count": 17,
+      "mean": 3524.04
+    },
+    "Triple Sharing": {
+      "count": 17,
+      "mean": 2313.25
+    }
+  }
+}

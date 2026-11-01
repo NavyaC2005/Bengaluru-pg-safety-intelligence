@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Bengaluru PG Market Intelligence & Safety Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Bengaluru PG Price & Safety Intelligence</h1>
+        <p class="page-subtitle">
+            A data-driven decision-support platform designed to help students and working professionals
+            estimate typical rents, identify transparent warning indicators, and compare accommodations across Bengaluru.
+        </p>
+    </div>
+
+    <!-- KPI Summary Grid -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Analyzed Listings</div>
+            <div class="kpi-val">{{ total_listings }}</div>
+            <div class="kpi-sub">Across 16 Bengaluru tech hubs</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Median Monthly Rent</div>
+            <div class="kpi-val highlight">₹{{ "{:,.0f}".format(cleaning_summary.median_rent) }}</div>
+            <div class="kpi-sub">Range: ₹{{ "{:,.0f}".format(cleaning_summary.min_rent) }} - ₹{{ "{:,.0f}".format(cleaning_summary.max_rent) }}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Typical Deposit Ratio</div>
+            <div class="kpi-val">{{ "{:.1f}".format(cleaning_summary.mean_deposit_ratio) }}x</div>
+            <div class="kpi-sub">Standard benchmark: 1.5x - 3.0x</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Verification Prompts</div>
+            <div class="kpi-val" style="color: var(--warning-dark);">{{ warning_counts.get('Review carefully', 0) }}</div>
+            <div class="kpi-sub">Listings warranting in-person checks</div>
+        </div>
+    </div>
+
+    <!-- Quick Action Banner -->
+    <div class="card" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: #ffffff; padding: 32px; border: none; margin-bottom: 36px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+            <div style="max-width: 680px;">
+                <h2 style="font-family: var(--font-heading); font-size: 1.6rem; margin-bottom: 8px;">Find Your Ideal PG or Estimate Fair Rent</h2>
+                <p style="opacity: 0.9; font-size: 0.95rem;">
+                    Filter 400+ listings based on your exact locality, room sharing, budget, and amenities,
+                    or use our trained Random Forest model to predict fair rent before negotiating.
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <a href="/find" class="btn btn-secondary" style="background: #ffffff; color: var(--primary); font-weight: 700;">Find PG Options</a>
+                <a href="/estimate" class="btn btn-primary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);">Estimate Rent</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts & Locality Benchmarks -->
+    <div class="layout-2col">
+        <!-- Locality Rent Table -->
+        <div class="card" style="padding: 24px;">
+            <h3 class="card-title">Locality Price Benchmarks</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+                Median monthly rents and deposit figures across Bengaluru neighborhoods.
+            </p>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Locality</th>
+                            <th>Median Rent</th>
+                            <th>Deposit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loc in loc_stats %}
+                        <tr>
+                            <td><strong>{{ loc.locality }}</strong></td>
+                            <td style="color: var(--primary); font-weight: 700;">₹{{ "{:,.0f}".format(loc.median_rent) }}</td>
+                            <td style="color: var(--text-muted);">₹{{ "{:,.0f}".format(loc.median_deposit) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Visual Analytics Column -->
+        <div>
+            <div class="card">
+                <h3 class="card-title">Rent Distribution by Locality</h3>
+                <img src="{{ url_for('static', filename='charts/rent_by_locality.png') }}" alt="Rent by Locality" class="chart-img">
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Deposit-to-Rent Ratio & Safety Boundary</h3>
+                <img src="{{ url_for('static', filename='charts/deposit_to_rent_ratio.png') }}" alt="Deposit to Rent Ratio" class="chart-img">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 12px;">
+                    Our rule-based engine flags listings with deposit ratios exceeding 4.5x rent as requiring scrutiny of refund terms.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

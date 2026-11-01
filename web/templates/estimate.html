@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Rent Estimator | Machine Learning Price Intelligence{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Machine Learning Rent Estimator</h1>
+        <p class="page-subtitle">
+            Estimate expected monthly rent for any customized PG configuration across Bengaluru.
+            Powered by a trained Random Forest Regressor cross-validated on held-out test data.
+        </p>
+    </div>
+
+    <div class="layout-2col">
+        <!-- Input Form -->
+        <div class="card">
+            <h3 class="card-title">Property Configuration</h3>
+            <form id="estimateForm">
+                <div class="form-group">
+                    <label class="form-label" for="estLocality">Bengaluru Locality</label>
+                    <select id="estLocality" class="form-select" required>
+                        {% for loc in all_localities %}
+                        <option value="{{ loc }}" {% if loc == 'BTM Layout' %}selected{% endif %}>{{ loc }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="estRoomType">Room Sharing Type</label>
+                    <select id="estRoomType" class="form-select" required>
+                        {% for rt in all_room_types %}
+                        <option value="{{ rt }}" {% if rt == 'Double Sharing' %}selected{% endif %}>{{ rt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="estFoodOption">Food Facility</label>
+                    <select id="estFoodOption" class="form-select">
+                        {% for fo in all_food_options %}
+                        <option value="{{ fo }}" {% if fo == 'Included' %}selected{% endif %}>{{ fo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="estWifi">Wi-Fi Internet</label>
+                        <select id="estWifi" class="form-select">
+                            <option value="Yes" selected>Yes (Included)</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="estAc">Air Conditioning</label>
+                        <select id="estAc" class="form-select">
+                            <option value="No" selected>No</option>
+                            <option value="Yes">Yes (AC Room)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="estBathroom">Bathroom Setup</label>
+                    <select id="estBathroom" class="form-select">
+                        <option value="Attached" selected>Attached Bathroom</option>
+                        <option value="Shared">Shared Bathroom</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Available Amenities</label>
+                    <div class="form-checkbox-group">
+                        {% for amenity in known_amenities %}
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="estimator_amenities" value="{{ amenity }}"
+                                   {% if amenity in ['Lift', 'Power backup', 'Housekeeping', 'CCTV'] %}checked{% endif %}>
+                            <span>{{ amenity }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top: 16px;">
+                    Calculate Fair Rent
+                </button>
+            </form>
+        </div>
+
+        <!-- Output Prediction Display & Model Card -->
+        <div>
+            <div class="card" id="estimateResultBox" style="border: 2px solid var(--primary-border); background: #ffffff;">
+                <div style="text-align: center; padding: 32px 0;">
+                    <span class="badge badge-success" style="margin-bottom: 12px;">Pre-loaded Baseline</span>
+                    <div style="font-size: 0.95rem; color: #64748b; font-weight: 600;">Estimated Rent for BTM Layout (Double Sharing, Food Included)</div>
+                    <div style="font-family: var(--font-heading); font-size: 3rem; font-weight: 800; color: #4f46e5; line-height: 1.1; margin: 12px 0;">
+                        ₹13,400 <span style="font-size: 1.1rem; color: #64748b; font-weight: 500;">/ month</span>
+                    </div>
+                    <div style="font-size: 0.95rem; color: #334155; margin-bottom: 16px;">
+                        Expected Market Range: <strong>₹11,800 – ₹15,000</strong>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #64748b; max-width: 500px; margin: 0 auto; line-height: 1.5;">
+                        Configure property options on the left and click "Calculate Fair Rent" to generate live estimates for any locality.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Model Details Card -->
+            <div class="card">
+                <h3 class="card-title">Model Architecture & Verification</h3>
+                <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 14px;">
+                    Trained on 320 records and verified on an independent 80-record held-out test split.
+                    Deposit was intentionally excluded from features to avoid post-outcome target leakage.
+                </p>
+                {% if model_metrics %}
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 18px; text-align: center;">
+                    <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">TEST MAE</div>
+                        <div style="font-weight: 800; color: var(--text-main); font-size: 1.1rem;">₹{{ "{:,.0f}".format(model_metrics.random_forest.test.mae) }}</div>
+                    </div>
+                    <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">TEST RMSE</div>
+                        <div style="font-weight: 800; color: var(--text-main); font-size: 1.1rem;">₹{{ "{:,.0f}".format(model_metrics.random_forest.test.rmse) }}</div>
+                    </div>
+                    <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">TEST R²</div>
+                        <div style="font-weight: 800; color: var(--primary); font-size: 1.1rem;">{{ model_metrics.random_forest.test.r2 }}</div>
+                    </div>
+                </div>
+                {% endif %}
+                <img src="{{ url_for('static', filename='charts/model_comparison.png') }}" alt="Model Comparison" class="chart-img">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

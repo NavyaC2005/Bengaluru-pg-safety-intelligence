@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Listing Safety Verifier & Transparency Engine{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Listing Safety & Transparency Verifier</h1>
+        <p class="page-subtitle">
+            Evaluate any PG listing or rental proposal before making payment.
+            Our rule-based engine checks deposit ratios, scans for advance-token red flags,
+            and detects attribute discrepancies.
+        </p>
+    </div>
+
+    <!-- Alert Note -->
+    <div class="warning-box" style="background: #eff6ff; border-color: #bfdbfe; margin-bottom: 28px;">
+        <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <span style="font-size: 1.4rem;">💡</span>
+            <div>
+                <strong style="color: #1e40af; font-size: 0.95rem;">Ethical & Decision-Support Standard</strong>
+                <p style="color: #1e3a8a; font-size: 0.88rem; margin-top: 2px;">
+                    This tool surfaces explainable verification prompts to protect tenants from unfair practices.
+                    A triggered indicator is <strong>not proof of fraud</strong>—legitimate PG operators may occasionally have higher deposits or generic descriptions.
+                    Always verify property, agreement, and management identity in person.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="layout-2col">
+        <!-- Input Form -->
+        <div class="card">
+            <h3 class="card-title">Listing Parameters</h3>
+            <form id="verifyForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="verRent">Monthly Rent (INR)</label>
+                        <input type="number" id="verRent" class="form-input" placeholder="e.g. 12000" value="12000" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="verDeposit">Security Deposit (INR)</label>
+                        <input type="number" id="verDeposit" class="form-input" placeholder="e.g. 65000" value="65000" required>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" for="verLocality">Locality</label>
+                        <select id="verLocality" class="form-select">
+                            {% for loc in all_localities %}
+                            <option value="{{ loc }}" {% if loc == 'Indiranagar' %}selected{% endif %}>{{ loc }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="verRoomType">Room Sharing</label>
+                        <select id="verRoomType" class="form-select">
+                            {% for rt in all_room_types %}
+                            <option value="{{ rt }}" {% if rt == 'Double Sharing' %}selected{% endif %}>{{ rt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="verAc">Structured AC Feature</label>
+                    <select id="verAc" class="form-select">
+                        <option value="No" selected>No (Non-AC Room)</option>
+                        <option value="Yes">Yes (AC Room)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="verDescription">Listing Description / Ad Copy</label>
+                    <textarea id="verDescription" class="form-textarea" rows="3" placeholder="Paste the text from the ad or message...">Double Sharing PG in Indiranagar with high-speed wifi. Please pay 500 refundable gate pass token before visiting.</textarea>
+                </div>
+
+                <div class="form-group" style="background: #fef2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: var(--radius-md);">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="verPayBefore" checked>
+                        <span style="font-weight: 600; color: #991b1b;">Listing demands advance token or visiting fee before meeting</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    Evaluate Listing Safety
+                </button>
+            </form>
+        </div>
+
+        <!-- Verification Results Box -->
+        <div class="card" id="verifyResultBox">
+            <div style="text-align: center; padding: 36px 0;">
+                <span class="badge badge-warning" style="margin-bottom: 12px;">Interactive Ready</span>
+                <h3 style="font-family: var(--font-heading); margin-bottom: 8px;">Run an Automated Verification Check</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); max-width: 450px; margin: 0 auto;">
+                    Fill in the listing parameters on the left and click "Evaluate Listing Safety" to view transparent verification prompts and tenant checklists.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

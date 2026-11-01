@@ -1,0 +1,313 @@
+import json
+import os
+
+notebook_path = os.path.join(
+    os.path.dirname(__file__), '..', 'notebooks', 'pg_safety_and_price_intelligence.ipynb'
+)
+
+cells = [
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "# PG Safety and Price Intelligence for Bengaluru\n",
+            "### End-to-End Data Science & Machine Learning Workflow\n",
+            "\n",
+            "---\n",
+            "### Abstract\n",
+            "This project provides a comprehensive data-driven decision-support workflow for individuals evaluating Paying Guest (PG) accommodations in Bengaluru. It systematically analyzes listing attributes such as locality, rent, deposit, room sharing type, and amenities, estimates fair market rent using machine learning (Linear Regression baseline vs. Random Forest Regressor), surfaces transparent, explainable warning indicators for listings requiring manual verification, and delivers a multi-criteria recommendation engine tailored to user preferences and budget.\n",
+            "\n",
+            "> **Important Note & Ethical Disclaimer:** Warning indicators are prompts for independent verification—not certified proof of fraud or scams. Any numerical outputs derived from the demonstration dataset serve illustrative and analytical purposes."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": 1,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "import os\n",
+            "import sys\n",
+            "import json\n",
+            "import numpy as np\n",
+            "import pandas as pd\n",
+            "import matplotlib.pyplot as plt\n",
+            "import seaborn as sns\n",
+            "\n",
+            "# Add src directory to path\n",
+            "sys.path.append(os.path.abspath('../src'))\n",
+            "from data_cleaner import clean_dataset, clean_currency, normalize_locality\n",
+            "from feature_pipeline import create_feature_preprocessor, prepare_feature_dataframe, ALL_MODEL_FEATURES\n",
+            "from model_trainer import train_and_evaluate, predict_rent_estimate\n",
+            "from warning_engine import evaluate_listing_safety\n",
+            "from recommender import PGRecommender\n",
+            "\n",
+            "sns.set_theme(style='whitegrid', font_scale=1.05)\n",
+            "print('Environment initialized successfully.')"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "## 1. Data Understanding & Ingestion\n",
+            "We load the demonstration dataset containing 400 listing records across major Bengaluru tech corridors and residential hubs."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": 2,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "raw_data_path = '../data/pg_listings.csv'\n",
+            "raw_df = pd.read_csv(raw_data_path)\n",
+            "print(f'Raw Dataset Shape: {raw_df.shape[0]} rows, {raw_df.shape[1]} columns')\n",
+            "\n",
+            "# Check missing value profile\n",
+            "missing = raw_df.isnull().sum()\n",
+            "print('\\nMissing values detected:')\n",
+            "print(missing[missing > 0])\n",
+            "raw_df.head(3)"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "## 2. Data Cleaning & Normalization\n",
+            "Real-world rental data frequently suffers from inconsistent currency formatting (e.g., `₹13,300`, `46,500 INR`), case discrepancies in localities (e.g., `WHITEFIELD` vs `Whitefield`), missing amenities, and unstandardized deposit values.\n",
+            "\n",
+            "Our cleaning pipeline handles:\n",
+            "1. **Currency Parsing**: Stripping currency symbols, commas, and converting to numeric float.\n",
+            "2. **Locality Standardization**: Normalizing Bengaluru localities to canonical title case.\n",
+            "3. **Missing Value Imputation**: Median deposit by locality/room-type, mode for categorical amenities.\n",
+            "4. **Multi-Hot Vectorization**: Decomposing semicolon-separated amenities into binary flags."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": 3,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "cleaned_df, summary = clean_dataset(raw_df)\n",
+            "print('Cleaning Summary:')\n",
+            "for k, v in summary.items():\n",
+            "    if isinstance(v, float):\n",
+            "        print(f' - {k}: {v:,.2f}')\n",
+            "    else:\n",
+            "        print(f' - {k}: {v}')\n",
+            "\n",
+            "print(f'\\nCleaned DataFrame Shape: {cleaned_df.shape}')"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "## 3. Exploratory Data Analysis & Visualizations\n",
+            "We examine how rent varies by locality and room sharing configuration, inspect deposit-to-rent ratios, and analyze amenity coverage."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": 4,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# 1. Rent Distribution by Locality\n",
+            "plt.figure(figsize=(10, 6))\n",
+            "loc_order = cleaned_df.groupby('locality')['monthly_rent_inr'].median().sort_values().index\n",
+            "sns.boxplot(data=cleaned_df, y='locality', x='monthly_rent_inr', order=loc_order, palette='mako')\n",
+            "plt.title('Monthly Rent Distribution Across Bengaluru Localities (INR)', fontweight='bold')\n",
+            "plt.xlabel('Monthly Rent (INR)')\n",
+            "plt.show()\n",
+            "\n",
+            "# 2. Deposit-to-Rent Ratio\n",
+            "plt.figure(figsize=(8, 4.5))\n",
+            "sns.histplot(cleaned_df['deposit_to_rent_ratio'], kde=True, bins=25, color='#0284c7')\n",
+            "plt.axvline(4.5, color='#ef4444', linestyle='--', label='High Deposit Alert Threshold (4.5x)')\n",
+            "plt.title('Deposit-to-Rent Ratio Distribution', fontweight='bold')\n",
+            "plt.xlabel('Deposit / Rent Ratio')\n",
+            "plt.legend()\n",
+            "plt.show()"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "## 4. Machine Learning Modeling: Rent Prediction\n",
+            "We formulate monthly rent estimation as a supervised regression task. As required by the project specifications, we avoid target leakage by splitting the training and test sets (80% train, 20% test) before model training.\n",
+            "\n",
+            "- **Candidate Features**: `locality`, `room_type`, `food_option`, `wifi`, `ac`, `bathroom_type`, and individual amenity binary flags.\n",
+            "- **Baseline Model**: Linear Regression (interpretable linear benchmark).\n",
+            "- **Non-linear Comparison**: Random Forest Regressor (captures non-linear interactions between locality, room type, and facilities).\n",
+            "- **Evaluation Metrics**: MAE (rupees error), RMSE (penalizes large outliers), and $R^2$ (variance explained)."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": 5,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "rf_model, lr_model, eval_metrics, test_eval_df = train_and_evaluate(cleaned_df)\n",
+            "\n",
+            "eval_table = pd.DataFrame([\n",
+            "    {\n",
+            "        'Model': 'Linear Regression (Baseline)',\n",
+            "        'Test MAE (INR)': eval_metrics['linear_regression']['test']['mae'],\n",
+            "        'Test RMSE (INR)': eval_metrics['linear_regression']['test']['rmse'],\n",
+            "        'Test R2 Score': eval_metrics['linear_regression']['test']['r2']\n",
+            "    },\n",
+            "    {\n",
+            "        'Model': 'Random Forest Regressor',\n",
+            "        'Test MAE (INR)': eval_metrics['random_forest']['test']['mae'],\n",
+            "        'Test RMSE (INR)': eval_metrics['random_forest']['test']['rmse'],\n",
+            "        'Test R2 Score': eval_metrics['random_forest']['test']['r2']\n",
+            "    }\n",
+            "])\n",
+            "\n",
+            "print('\\nHeld-out Test Set Model Comparison:')\n",
+            "eval_table"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "## 5. Residual Analysis & Segment Error Inspection\n",
+            "We inspect mean absolute error across localities and room sharing types on held-out test data."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": 6,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "print('Mean Absolute Error by Room Type (Held-out Test Data):')\n",
+            "room_err = test_eval_df.groupby('room_type')['abs_error'].agg(['count', 'mean']).round(2)\n",
+            "room_err.columns = ['Sample Count', 'Mean Abs Error (INR)']\n",
+            "print(room_err)\n",
+            "\n",
+            "print('\\nMean Absolute Error by Locality (Top 5 Test Groups):')\n",
+            "loc_err = test_eval_df.groupby('locality')['abs_error'].agg(['count', 'mean']).round(2)\n",
+            "loc_err.columns = ['Sample Count', 'Mean Abs Error (INR)']\n",
+            "print(loc_err.sort_values(by='Sample Count', ascending=False).head(5))"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "## 6. Transparent Rule-Based Safety & Warning Engine\n",
+            "We evaluate listings using transparent, explainable checks:\n",
+            "1. **Elevated Deposit Ratio**: Deposit $\\ge 4.5\\times$ monthly rent.\n",
+            "2. **Advance Payment Prompt**: Demands token or fees prior to physical in-person viewing.\n",
+            "3. **Feature Discrepancy**: Contradictions between textual claims and structured attributes.\n",
+            "4. **Template Descriptions**: Generic bulk boilerplate texts."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": 7,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "sample_listing = {\n",
+            "    'locality': 'Indiranagar',\n",
+            "    'monthly_rent_inr': 18000,\n",
+            "    'deposit_inr': 90000,\n",
+            "    'room_type': 'Single',\n",
+            "    'ac': 'No',\n",
+            "    'pay_before_visit_indicator': 1,\n",
+            "    'listing_description_demo': 'Single PG with AC. Please pay 1000 token before visiting.'\n",
+            "}\n",
+            "\n",
+            "safety_report = evaluate_listing_safety(sample_listing, predicted_rent=17500)\n",
+            "print(f\"Warning Count: {safety_report['warning_count']} | Status: {safety_report['rule_based_warning_label']}\")\n",
+            "print('\\nFlagged Verification Indicators:')\n",
+            "for w in safety_report['warnings']:\n",
+            "    print(f\" - [{w['severity']}] {w['title']}: {w['message']}\")"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "## 7. Recommendation Engine Demonstration\n",
+            "As outlined in Section 13 of the project plan:\n",
+            "A user selects **BTM Layout**, **double sharing**, **Wi-Fi required**, and a budget of **₹12,000**."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": 8,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "recommender = PGRecommender(cleaned_df)\n",
+            "\n",
+            "user_query = {\n",
+            "    'locality': 'BTM Layout',\n",
+            "    'room_type': 'Double Sharing',\n",
+            "    'wifi_required': True,\n",
+            "    'budget': 12000,\n",
+            "    'preferred_amenities': ['Power backup', 'Housekeeping']\n",
+            "}\n",
+            "\n",
+            "rec_results = recommender.recommend(user_query, top_k=5)\n",
+            "print(f\"Total Matches in Database: {rec_results['total_matches']}\\n\")\n",
+            "\n",
+            "for i, rec in enumerate(rec_results['recommendations'], 1):\n",
+            "    print(f\"Option #{i}: {rec['listing_id']} - Rent: INR {rec['monthly_rent_inr']:,} | Deposit: INR {rec['deposit_inr']:,}\")\n",
+            "    print(f\"  Match Score: {rec['match_score']}/100 | Market Evaluation: {rec['price_tag']}\")\n",
+            "    print(f\"  Safety Status: {rec['safety']['rule_based_warning_label']}\")\n",
+            "    if rec['safety']['warnings']:\n",
+            "        for w in rec['safety']['warnings']:\n",
+            "            print(f\"   * Warning: {w['title']} - {w['message']}\")\n",
+            "    print()\n",
+            "    \n",
+            "if not rec_results['recommendations']:\n",
+            "    print(rec_results['message'])"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "## 8. Discussion, Limitations & Ethical Guidelines\n",
+            "\n",
+            "### Model & Data Limitations\n",
+            "1. **Demonstration Dataset Scope**: The underlying dataset consists of 400 demonstration records with controlled noise. Performance metrics validate the data science and engineering pipeline, but must not be cited as empirical truths about the Bengaluru real estate market without verified market data.\n",
+            "2. **Post-Outcome Leakage Prevention**: We deliberately excluded deposit from the input feature set for rent estimation. In practical rental journeys, rent is estimated prior to deposit negotiation.\n",
+            "3. **Ethical Limits on Fraud Detection**: A low review rating or high deposit ratio does not prove fraud. Genuine properties may have higher security deposits due to premium electronics. Transparent warnings serve to empower tenants during physical verification."
+        ]
+    }
+]
+
+notebook = {
+    "cells": cells,
+    "metadata": {
+        "kernelspec": {
+            "display_name": "Python 3",
+            "language": "python",
+            "name": "python3"
+        },
+        "language_info": {
+            "name": "python",
+            "version": "3.14"
+        }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5
+}
+
+os.makedirs(os.path.dirname(notebook_path), exist_ok=True)
+with open(notebook_path, 'w', encoding='utf-8') as f:
+    json.dump(notebook, f, indent=2)
+
+print(f"Jupyter Notebook successfully written to: {notebook_path}")

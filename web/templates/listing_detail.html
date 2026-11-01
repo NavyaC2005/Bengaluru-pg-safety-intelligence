@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Listing Details - {{ listing.listing_id }} | PG Intelligence{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="margin-bottom: 20px;">
+        <a href="/find" style="color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+            ← Back to PG Finder
+        </a>
+    </div>
+
+    <div class="layout-2col">
+        <!-- Main Listing Info -->
+        <div>
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                    <div>
+                        <span class="badge" style="background: #f1f5f9; color: #475569; margin-bottom: 8px;">{{ listing.listing_id }}</span>
+                        <h1 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; color: var(--text-main);">
+                            {{ listing.locality }}
+                        </h1>
+                        <p style="color: var(--text-muted); font-size: 0.95rem;">
+                            {{ listing.room_type }} • Bathroom: {{ listing.bathroom_type }} • Food: {{ listing.food_option }}
+                        </p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 800; color: var(--primary);">
+                            ₹{{ "{:,.0f}".format(listing.monthly_rent_inr) }}
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">
+                            Deposit: ₹{{ "{:,.0f}".format(listing.deposit_inr) }} ({{ listing.deposit_to_rent_ratio }}x rent)
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-page); border-left: 3px solid var(--primary); padding: 14px; border-radius: var(--radius-sm); margin: 18px 0;">
+                    <strong style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">
+                        Listing Description:
+                    </strong>
+                    <p style="font-size: 0.92rem; color: #334155; line-height: 1.6;">
+                        "{{ listing.listing_description_demo or 'Standard PG accommodation in prime locality.' }}"
+                    </p>
+                </div>
+
+                <!-- Core Specifications Grid -->
+                <h3 style="font-family: var(--font-heading); font-size: 1.15rem; margin: 24px 0 14px 0;">Key Specifications</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px;">
+                    <div style="background: #f8fafc; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">WI-FI</div>
+                        <div style="font-weight: 700; color: var(--text-main);">{{ listing.wifi }}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">AIR CONDITIONING</div>
+                        <div style="font-weight: 700; color: var(--text-main);">{{ listing.ac }}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">FOOD SERVICE</div>
+                        <div style="font-weight: 700; color: var(--text-main);">{{ listing.food_option }}</div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">RATINGS</div>
+                        <div style="font-weight: 700; color: var(--text-main);">★ {{ listing.rating_demo }} ({{ listing.review_count_demo }} reviews)</div>
+                    </div>
+                </div>
+
+                <!-- Amenities Section -->
+                <h3 style="font-family: var(--font-heading); font-size: 1.15rem; margin-bottom: 12px;">Provided Amenities</h3>
+                <div class="listing-amenities-row">
+                    {% for am in listing.amenities.split(';') %}
+                        {% if am.strip() %}
+                        <span class="amenity-chip" style="font-size: 0.88rem; padding: 6px 12px;">✓ {{ am.strip() }}</span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Safety & Price Verification Sidebar -->
+        <aside>
+            <!-- Price Intelligence Card -->
+            <div class="card">
+                <h3 class="card-title">Price Intelligence</h3>
+                {% if predicted_rent %}
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">Estimated Market Rent:</div>
+                    <div style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800; color: var(--primary);">
+                        ₹{{ "{:,.0f}".format(predicted_rent) }}
+                    </div>
+                    {% set diff = listing.monthly_rent_inr - predicted_rent %}
+                    <div style="font-size: 0.88rem; margin-top: 4px;">
+                        {% if diff < -1000 %}
+                        <span style="color: var(--success); font-weight: 700;">₹{{ "{:,.0f}".format(diff|abs) }} below benchmark (Favorable Price)</span>
+                        {% elif diff > 1000 %}
+                        <span style="color: var(--warning-dark); font-weight: 700;">₹{{ "{:,.0f}".format(diff) }} above benchmark (Premium pricing)</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-weight: 600;">Aligned with typical locality benchmark</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                <div style="font-size: 0.82rem; color: var(--text-subtle);">
+                    Benchmark generated by trained Random Forest Regressor based on locality, room type, and facilities.
+                </div>
+            </div>
+
+            <!-- Safety Evaluation Card -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <h3 class="card-title" style="margin: 0;">Safety Evaluation</h3>
+                    <span class="badge {{ safety.badge_class }}">{{ safety.rule_based_warning_label }}</span>
+                </div>
+
+                {% if safety.warnings %}
+                    <div style="margin-bottom: 16px;">
+                        {% for w in safety.warnings %}
+                        <div class="warning-box" style="margin-bottom: 10px;">
+                            <div style="font-size: 0.88rem; font-weight: 700; color: #92400e;">⚠️ {{ w.title }}</div>
+                            <div style="font-size: 0.82rem; color: #78350f; margin-top: 2px;">{{ w.message }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="warning-box" style="background: #f0fdf4; border-color: #bbf7d0; margin-bottom: 16px;">
+                        <strong style="color: #166534; font-size: 0.88rem;">No Rule-Based Flags Triggered</strong>
+                        <p style="font-size: 0.82rem; color: #14532d; margin-top: 4px;">Standard rental terms detected.</p>
+                    </div>
+                {% endif %}
+
+                <!-- Verification Checklist -->
+                <div style="padding-top: 14px; border-top: 1px solid var(--border);">
+                    <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 8px;">Tenant Verification Steps:</h4>
+                    <ul style="padding-left: 18px; font-size: 0.82rem; color: var(--text-muted); line-height: 1.6;">
+                        {% for item in safety.verification_checklist %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+{% endblock %}

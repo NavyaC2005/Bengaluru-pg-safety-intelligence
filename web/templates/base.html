@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PG Safety & Price Intelligence | Bengaluru{% endblock %}</title>
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Top System Notice Banner -->
+    <div class="top-banner">
+        <div class="container banner-content">
+            <span class="banner-pill">Decision-Support System</span>
+            <span class="banner-text">Rent estimates are benchmarks; warning flags are prompts for physical verification, not proof of fraud.</span>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="container nav-container">
+            <a href="/" class="brand-logo">
+                <div class="brand-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title">PG Intelligence</span>
+                    <span class="brand-sub">Bengaluru Market & Safety</span>
+                </div>
+            </a>
+
+            <nav class="nav-links">
+                <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Market Overview</a>
+                <a href="/find" class="nav-link {% if request.path == '/find' %}active{% endif %}">Find PG</a>
+                <a href="/estimate" class="nav-link {% if request.path == '/estimate' %}active{% endif %}">Rent Estimator</a>
+                <a href="/verify" class="nav-link {% if request.path == '/verify' %}active{% endif %}">Safety Verifier</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-col">
+                <div class="footer-brand">
+                    <strong>PG Safety & Price Intelligence for Bengaluru</strong>
+                </div>
+                <p class="footer-desc">
+                    A data science decision-support application built with Scikit-learn, Random Forest Regressors,
+                    and rule-based transparency indicators. Designed to help students and professionals navigate Bengaluru's PG market safely.
+                </p>
+            </div>
+            <div class="footer-col">
+                <h4>Quick Navigation</h4>
+                <ul class="footer-links">
+                    <li><a href="/">Overview & Market Analytics</a></li>
+                    <li><a href="/find">PG Finder & Match Scoring</a></li>
+                    <li><a href="/estimate">Machine Learning Rent Estimator</a></li>
+                    <li><a href="/verify">Listing Transparency Verifier</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Ethical Disclosure</h4>
+                <p class="footer-disclaimer">
+                    The underlying 400 records serve as a demonstration dataset with synthetic variance.
+                    Warning flags highlight parameters requiring in-person verification (such as unusually high deposit ratios or lack of agreement) and do not legally certify fraud.
+                </p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div class="container">
+                <p>&copy; 2026 Bengaluru PG Intelligence Project • Data Science & Full-Stack System</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Core Script -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
